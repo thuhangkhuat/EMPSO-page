@@ -57,10 +57,11 @@ import Figure from "./components/Figure.astro";
 import Picture from "./components/Picture.astro";
 import TwoColumns from "./components/TwoColumns.astro";
 import YouTubeVideo from "./components/YouTubeVideo.astro";
+import { SearchReplay } from "./components/SearchReplay";
+import scenario5 from "./data/empso-scenario5.json";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/starwind/tabs";
 
 import figStructure from "./assets/fig1_structure.png";
-import figEncoding from "./assets/fig2_encoding.png";
 import scen1 from "./assets/scen1.png";
 import scen2 from "./assets/scen2.png";
 import scen3 from "./assets/scen3.png";
@@ -192,8 +193,6 @@ $$
 
 For each particle, the $m$ particles closest to its personal best form its neighborhood. Because neighborhoods reflect spatial separation, the niches that form correspond to distinct regions of the belief map.
 
-<Picture src={figEncoding} alt="Two examples of motion encodings and their decoded paths" maxHeight="max-h-[40svh]" />
-
 </div>
 </CarouselSlide>
 
@@ -294,6 +293,12 @@ All six scenarios use a $40 \times 40$ grid and differ in the start location, th
 </Tabs>
 
 In every scenario, the paths advance toward the high-probability regions and no two paths follow the same route: the fleet covers the belief map with complementary trajectories rather than repeated visits to the dominant region.
+
+### Interactive replay
+
+Drag the slider to step through Scenario 5. At each step the belief map shifts with the target's motion, and every cell a UAV visits without detecting the target drops to zero before the map is renormalized; the counters track $1 - R_t$ and the running sum of $J^*$.
+
+<SearchReplay client:visible data={scenario5} />
 
 EMPSO uses the same parameters in all scenarios:
 

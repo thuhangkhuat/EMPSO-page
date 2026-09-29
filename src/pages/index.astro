@@ -1,0 +1,527 @@
+---
+import { Font } from "astro:assets";
+
+import Links from "../components/Links.astro";
+import Authors from "../components/Authors.astro";
+import type { Author, Institution, Note, Link } from "../types/types";
+
+import Table from "../components/Table.astro";
+
+import "../styles/global.css";
+import "katex/dist/katex-swap.css";
+
+import { Content, frontmatter } from "../paper.mdx";
+
+interface Frontmatter {
+  title: string;
+  authors: Author[];
+  institutions?: Institution[];
+  conference?: string;
+  notes?: Note[];
+  links?: Link[];
+  description?: string;
+  favicon: string;
+  thumbnail?: string;
+  theme?: "device" | "light" | "dark";
+  keywords?: string[];
+}
+
+const {
+  title,
+  authors,
+  institutions,
+  conference,
+  notes,
+  links,
+  description,
+  favicon,
+  thumbnail,
+  theme = "device",
+  keywords,
+} = frontmatter as Frontmatter;
+
+const baseUrl = import.meta.env.BASE_URL;
+const prefix = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
+const [heroBrand, ...heroTitleParts] = title.split(":");
+const heroTitle = heroTitleParts.join(":").trim();
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  headline: title,
+  name: title,
+  description,
+  url: Astro.url.href,
+  inLanguage: "en",
+  keywords: keywords ?? [],
+  author: authors.map((a) => ({ "@type": "Person", name: a.name })),
+};
+---
+
+<!doctype html>
+<html class="bg-white dark:bg-zinc-900" lang="en" data-theme={theme}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; block-all-mixed-content" />
+    {description && <meta name="description" content={description} />}
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="canonical" href={Astro.url.href} />
+
+    <link rel="icon" type="image/svg+xml" href={prefix + favicon} />
+
+    <meta property="og:title" content={title} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:site_name" content={heroBrand.trim()} />
+    {thumbnail && <meta property="og:image" content={new URL(prefix + thumbnail, Astro.site).href} />}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    {description && <meta name="twitter:description" content={description} />}
+    {thumbnail && <meta name="twitter:image" content={new URL(prefix + thumbnail, Astro.site).href} />}
+
+    <Font
+      cssVariable="--font-noto-sans"
+      preload={[{ subset: "latin", style: "normal" }]}
+    />
+
+    <title>{title}</title>
+
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+
+
+    <style is:global>
+      /* ---- Floating left-side Table of Contents (ported from index.html) ---- */
+      :root {
+        --toc-accent: #2563eb;
+        --toc-accent-soft: rgba(37, 99, 235, 0.15);
+        --toc-muted: #888;
+        --toc-line: #e8e8e8;
+        --toc-divider: #ececec;
+        --toc-scrollbar: #ddd;
+      }
+      html[data-theme="dark"],
+      html.dark {
+        --toc-accent: #60a5fa;
+        --toc-accent-soft: rgba(96, 165, 250, 0.18);
+        --toc-muted: #a1a1aa;
+        --toc-line: #3f3f46;
+        --toc-divider: #3f3f46;
+        --toc-scrollbar: #52525b;
+      }
+      @media (prefers-color-scheme: dark) {
+        html[data-theme="device"] {
+          --toc-accent: #60a5fa;
+          --toc-accent-soft: rgba(96, 165, 250, 0.18);
+          --toc-muted: #a1a1aa;
+          --toc-line: #3f3f46;
+          --toc-divider: #3f3f46;
+          --toc-scrollbar: #52525b;
+        }
+      }
+
+      .toc {
+        position: fixed;
+        top: 50%;
+        left: 0.9rem;
+        transform: translateY(-50%);
+        z-index: 50;
+        max-height: 84vh;
+        overflow-y: auto;
+        padding: 0.2rem 0;
+        scrollbar-width: thin;
+      }
+      .toc-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.3em;
+        font-size: 0.9rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        line-height: 1.15;
+        color: var(--toc-muted);
+        text-transform: uppercase;
+        text-decoration: none;
+        padding: 0 0 0.55rem 0.35rem;
+        margin-bottom: 0.4rem;
+        border-bottom: 1px solid var(--toc-divider);
+      }
+      .toc::-webkit-scrollbar {
+        width: 2px;
+      }
+      .toc::-webkit-scrollbar-thumb {
+        background: var(--toc-scrollbar);
+        border-radius: 1px;
+      }
+      .toc-list {
+        list-style: none;
+        padding: 0 0 0 0.8rem;
+        margin: 0;
+        border-left: 1.5px solid var(--toc-line);
+        position: relative;
+      }
+      .toc-item {
+        position: relative;
+      }
+      .toc-link {
+        display: block;
+        padding: 0.34em 0.15em 0.34em 0.3em;
+        color: var(--toc-muted);
+        text-decoration: none;
+        font-size: 0.86em;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        transition:
+          color 0.18s ease,
+          padding-left 0.18s ease;
+        line-height: 1.3;
+        white-space: nowrap;
+        max-width: 11.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        position: relative;
+      }
+      .toc-link:hover {
+        color: var(--toc-accent);
+      }
+      .toc-link::before {
+        content: "";
+        position: absolute;
+        left: -0.85rem;
+        top: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: var(--toc-accent);
+        transform: translate(-50%, -50%);
+        transition:
+          width 0.18s ease,
+          height 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+      .toc-item.active > .toc-link {
+        color: var(--toc-accent);
+        font-weight: 700;
+        padding-left: 0.55em;
+      }
+      .toc-item.active > .toc-link::before {
+        width: 7px;
+        height: 7px;
+        box-shadow: 0 0 0 2px var(--toc-accent-soft);
+      }
+      /* Sub-items (h3) — always visible */
+      .toc-sub {
+        list-style: none;
+        padding: 0 0 0 0.7em;
+        margin: 0;
+      }
+      .toc-sub .toc-link {
+        font-size: 0.8em;
+        padding: 0.26em 0.15em 0.26em 0.3em;
+      }
+      .toc-sub .toc-item.active > .toc-link::before {
+        width: 6px;
+        height: 6px;
+      }
+
+      /* Hide TOC on narrow viewports */
+      @media (max-width: 1180px) {
+        .toc {
+          display: none;
+        }
+      }
+      /* Reserve gutter on mid-width laptops so floating TOC doesn't overlap content */
+      @media (min-width: 1181px) and (max-width: 1700px) {
+        body {
+          padding-left: 205px;
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="prose prose-zinc dark:prose-invert prose-a:text-blue-500 prose-a:dark:text-blue-300 prose-a:no-underline prose-a:hover:underline prose-a:font-normal prose-code:bg-zinc-200 prose-code:dark:bg-zinc-800 prose-code:text-zinc-800 prose-code:dark:text-zinc-200 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-medium prose-code:before:content-none prose-code:after:content-none max-w-none pt-6 pb-4 font-(family-name:--font-noto-sans)"
+  >
+    <header
+      class="hero mx-auto mb-8 w-[75%] max-w-none px-6 text-center"
+    >
+      <div class="hero-shell">
+        <div class="hero-lockup">
+          <span class="hero-brand">{heroBrand}</span>
+        </div>
+
+        {heroTitle && <h1 class="hero-title"><span class="sr-only">{heroBrand}: </span>{heroTitle}</h1>}
+
+        <div class="flex flex-col items-center gap-6">
+          <Authors
+            authors={authors}
+            institutions={institutions}
+            conference={conference}
+            notes={notes}
+          />
+          {links && <Links links={links} />}
+        </div>
+      </div>
+    </header>
+
+    <nav id="toc-sidebar" class="toc" aria-label="Page sections">
+      <span class="toc-brand">On this page</span>
+      <ul id="toc-list" class="toc-list"></ul>
+    </nav>
+
+    <main>
+      <Content components={{ table: Table }} />
+    </main>
+    <footer class="mx-auto max-w-[75%] px-6 text-center">
+      <p class="prose-sm text-center">
+        Built with <a
+          href="https://research-template.roman.technology"
+          rel="nofollow">Roman Hauksson-Neill's project page template</a
+        >
+      </p>
+    </footer>
+
+    <button
+      id="back-to-top"
+      aria-label="Back to top"
+      class="fixed right-6 bottom-6 z-50 hidden h-12 w-12 items-center justify-center rounded-full bg-zinc-800 text-white shadow-lg transition-opacity duration-300 hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <line x1="12" y1="19" x2="12" y2="5"></line>
+        <polyline points="5 12 12 5 19 12"></polyline>
+      </svg>
+    </button>
+
+    <script>
+      // ------- Build TOC from <main> headings (h2 + h3) -------
+      const list = document.getElementById("toc-list");
+      const main = document.querySelector("main");
+
+      type TocEntry = {
+        id: string;
+        el: HTMLElement;
+        li: HTMLLIElement;
+        parentId?: string;
+        // If this heading lives inside a carousel slide, the click handler
+        // must trigger the carousel pagination, and scroll-spy must follow
+        // the currently visible slide instead of the heading's DOM position.
+        carousel?: HTMLElement;
+        slideIndex?: number;
+      };
+      const entries: TocEntry[] = [];
+
+      const slugify = (text: string) =>
+        text
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/\s+/g, "-");
+
+      if (list && main) {
+        const headings = Array.from(
+          main.querySelectorAll("h2, h3"),
+        ) as HTMLElement[];
+
+        let currentH2Sub: HTMLUListElement | null = null;
+        let currentH2Li: HTMLLIElement | null = null;
+        let currentH2Id: string | null = null;
+
+        headings.forEach((h) => {
+          if (!h.id) h.id = slugify(h.textContent || "");
+
+          // Detect whether this heading sits inside a carousel slide.
+          const slideViewport = h.closest(
+            ".slide-viewport",
+          ) as HTMLElement | null;
+          const carouselWrapper = slideViewport
+            ? (slideViewport.closest(
+                ".carousel-wrapper",
+              ) as HTMLElement | null)
+            : null;
+          const slideIndex = slideViewport
+            ? Number(slideViewport.dataset.index ?? "-1")
+            : -1;
+          const insideCarousel =
+            !!carouselWrapper && Number.isFinite(slideIndex) && slideIndex >= 0;
+
+          const a = document.createElement("a");
+          a.href = `#${h.id}`;
+          a.textContent = h.textContent || "";
+          a.className = "toc-link";
+          a.addEventListener("click", (e) => {
+            e.preventDefault();
+            if (insideCarousel && carouselWrapper) {
+              // Scroll the carousel into view, then ask it to switch slides.
+              carouselWrapper.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+              const pageBtns = carouselWrapper.querySelectorAll<HTMLButtonElement>(
+                "button.page-button",
+              );
+              const btn = pageBtns[slideIndex];
+              if (btn) btn.click();
+            } else {
+              const target = document.getElementById(h.id);
+              if (target) {
+                target.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            }
+            history.replaceState(null, "", `#${h.id}`);
+          });
+          const li = document.createElement("li");
+          li.className = "toc-item";
+          li.dataset.target = h.id;
+          li.appendChild(a);
+
+          if (h.tagName === "H2") {
+            list.appendChild(li);
+            currentH2Li = li;
+            currentH2Id = h.id;
+            currentH2Sub = null;
+            entries.push({ id: h.id, el: h, li });
+          } else {
+            // H3 — nest under most recent H2 (if any)
+            if (currentH2Li && currentH2Id) {
+              if (!currentH2Sub) {
+                currentH2Sub = document.createElement("ul");
+                currentH2Sub.className = "toc-sub";
+                currentH2Li.classList.add("has-sub");
+                currentH2Li.appendChild(currentH2Sub);
+              }
+              currentH2Sub.appendChild(li);
+              entries.push({
+                id: h.id,
+                el: h,
+                li,
+                parentId: currentH2Id,
+                carousel: insideCarousel ? carouselWrapper! : undefined,
+                slideIndex: insideCarousel ? slideIndex : undefined,
+              });
+            } else {
+              list.appendChild(li);
+              entries.push({
+                id: h.id,
+                el: h,
+                li,
+                carousel: insideCarousel ? carouselWrapper! : undefined,
+                slideIndex: insideCarousel ? slideIndex : undefined,
+              });
+            }
+          }
+        });
+      }
+
+      // ------- Scroll-spy: highlight the section nearest the top -------
+      // Probe at 30% of viewport height; pick the section whose top is
+      // closest above that line.
+      function setActive(id: string) {
+        document
+          .querySelectorAll(".toc-item.active")
+          .forEach((el) => el.classList.remove("active"));
+        const entry = entries.find((e) => e.id === id);
+        if (!entry) return;
+        entry.li.classList.add("active");
+        if (entry.parentId) {
+          const parent = entries.find((e) => e.id === entry.parentId);
+          if (parent) parent.li.classList.add("active");
+        }
+      }
+
+      // Headings inside a carousel all share the same scroll position, so
+      // they would confuse the "topmost-above-probe" pick. Skip them for the
+      // position pass; we resolve them separately via the carousel's own
+      // active slide.
+      const positionEntries = entries.filter((e) => e.carousel === undefined);
+
+      let raf = 0;
+      function update() {
+        if (!entries.length) return;
+        const probeY = window.innerHeight * 0.3;
+        let best: TocEntry | null = null;
+        let bestTop = -Infinity;
+        for (const e of positionEntries) {
+          const top = e.el.getBoundingClientRect().top;
+          if (top <= probeY && top > bestTop) {
+            best = e;
+            bestTop = top;
+          }
+        }
+        if (!best) best = positionEntries[0] ?? entries[0];
+        let activeId = best.id;
+
+        // If the active H2 contains a carousel, prefer the H3 entry that
+        // matches the carousel's currently visible slide.
+        const carouselChild = entries.find(
+          (e) =>
+            e.parentId === best!.id &&
+            e.carousel !== undefined &&
+            e.carousel
+              .querySelectorAll<HTMLButtonElement>("button.page-button")
+              [e.slideIndex ?? -1]?.classList.contains("active"),
+        );
+        if (carouselChild) activeId = carouselChild.id;
+
+        setActive(activeId);
+      }
+      function onScroll() {
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          update();
+        });
+      }
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", onScroll, { passive: true });
+      update();
+
+      // Carousel pagination buttons toggle their `.active` class when the
+      // slide changes (autoplay or user click). Watch each carousel and
+      // re-run scroll-spy so the TOC reflects the visible slide.
+      const carousels = new Set<HTMLElement>();
+      entries.forEach((e) => {
+        if (e.carousel) carousels.add(e.carousel);
+      });
+      carousels.forEach((wrapper) => {
+        const pageBtns = wrapper.querySelectorAll<HTMLButtonElement>(
+          "button.page-button",
+        );
+        const mo = new MutationObserver(() => onScroll());
+        pageBtns.forEach((b) =>
+          mo.observe(b, { attributes: true, attributeFilter: ["class"] }),
+        );
+      });
+
+      // ------- Back to top -------
+      const btn = document.getElementById("back-to-top");
+      if (btn) {
+        const toggle = () => {
+          if (window.scrollY > 300) {
+            btn.classList.remove("hidden");
+            btn.classList.add("flex");
+          } else {
+            btn.classList.add("hidden");
+            btn.classList.remove("flex");
+          }
+        };
+        window.addEventListener("scroll", toggle, { passive: true });
+        toggle();
+        btn.addEventListener("click", () => {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      }
+    </script>
+  </body>
+</html>

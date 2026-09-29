@@ -1,0 +1,92 @@
+---
+import type { Author, Institution } from "../types/types";
+
+interface Props {
+  authors: Author[];
+  institutions?: Institution[];
+  conference?: string;
+  notes?: { symbol: string; text: string }[];
+}
+
+const { authors, institutions, conference, notes } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const withBase = (src: string) =>
+  /^https?:\/\//.test(src) ? src : base + (src.startsWith("/") ? src : "/" + src);
+const institutionLogos =
+  institutions?.filter((institution) => institution.logo) ?? [];
+---
+
+<div class="paper-authors">
+  <div class="paper-authors-list">
+    {
+      authors.map((author) => (
+        <span class="paper-author">
+          <span class="paper-author-name">
+            {author.url ? <a href={author.url}>{author.name}</a> : author.name}
+            {author.institutionIndices && (
+              <sup class="paper-author-institution-indices">
+                {author.institutionIndices.join(",")}
+              </sup>
+            )}
+            {author.notes && (
+              <sup class="paper-author-notes">
+                {author.notes.map(
+                  (note, i, array) => note + (i < array.length - 1 ? "," : ""),
+                )}
+              </sup>
+            )}
+          </span>
+        </span>
+      ))
+    }
+  </div>
+
+  {
+    institutions && institutions.length > 0 && (
+      <div class="paper-institutions">
+        {institutions.map((inst, index) => (
+          <span class="paper-institution">
+            <sup>{inst.index}</sup>
+            <span>{inst.name}</span>
+            {index < institutions.length - 1 && (
+              <span class="paper-institution-separator">;</span>
+            )}
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  {
+    institutionLogos.length > 0 && (
+      <div class="paper-institution-logos" aria-label="Institution logos">
+        {institutionLogos.map((institution) => (
+          <img
+            class="paper-institution-logo"
+            src={withBase(institution.logo!)}
+            alt={`${institution.name} logo`}
+            width={institution.logoWidth}
+            height={institution.logoHeight}
+            loading="eager"
+            decoding="async"
+          />
+        ))}
+      </div>
+    )
+  }
+
+  {conference && <div class="paper-conference">{conference}</div>}
+
+  {
+    notes && notes.length > 0 && (
+      <div class="paper-notes">
+        {notes.map((note) => (
+          <div class="paper-note">
+            <sup>{note.symbol}</sup>
+            <span>{note.text}</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+</div>

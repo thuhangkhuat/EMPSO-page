@@ -1,0 +1,257 @@
+---
+import { Icon } from "astro-icon/components";
+import { parseHTML } from "linkedom";
+// https://cassidysmith.dev/posts/modify-astro-slot-children
+
+interface Props {
+  autoplay?: boolean;
+  intervalMs?: number;
+  pauseOnHover?: boolean;
+}
+
+const { autoplay = false, intervalMs = 5000, pauseOnHover = true } = Astro.props;
+
+const html = await Astro.slots.render("default");
+const { document } = parseHTML(html);
+const children = Array.from(document.children);
+const numSlides = children.length;
+
+children.forEach((child, index) => {
+  child.setAttribute("data-index", String(index));
+});
+
+const slidesHtml = children.map((child) => child.outerHTML).join("");
+---
+
+<div
+  class="carousel-wrapper"
+  data-autoplay={autoplay ? "true" : "false"}
+  data-interval-ms={intervalMs}
+  data-pause-on-hover={pauseOnHover ? "true" : "false"}
+>
+  <div class="not-prose my-4 flex items-center justify-center">
+    <button
+      class="navigation-button prev-button h-[3rem] w-[3rem] cursor-pointer content-center disabled:cursor-not-allowed disabled:opacity-50 active:[&>svg]:scale-none!"
+      type="button"
+      ><Icon
+        class="mx-auto h-[2rem] w-[2rem] dark:text-zinc-200"
+        name="ri:arrow-drop-left-line"
+      /></button
+    >
+    <div class="flex">
+      {
+        Array.from({ length: numSlides }).map(() => (
+          <button
+            class="page-button h-[3rem] w-[3rem] cursor-pointer content-center active:[&>div]:scale-none!"
+            type="button"
+          >
+            <div class="mx-auto h-[0.5rem] w-[0.5rem] rounded-full bg-black transition dark:bg-zinc-200" />
+          </button>
+        ))
+      }
+    </div>
+    <button
+      class="navigation-button next-button h-[3rem] w-[3rem] cursor-pointer content-center disabled:cursor-not-allowed disabled:opacity-50 active:[&>svg]:scale-none!"
+      type="button"
+      ><Icon
+        class="mx-auto h-[2rem] w-[2rem] transition dark:text-zinc-200"
+        name="ri:arrow-drop-right-line"
+      /></button
+    >
+  </div>
+  <div
+    class="carousel-viewport w-[var(--actual-text-width)] overflow-hidden"
+  >
+    <div
+      class="carousel flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none]"
+    >
+      <Fragment set:html={slidesHtml} />
+    </div>
+  </div>
+</div>
+
+<script>
+  const carousels = document.querySelectorAll(
+    "div.carousel-wrapper",
+  ) as NodeListOf<HTMLDivElement>;
+
+  carousels.forEach((wrapper) => {
+    const carouselViewport = wrapper.querySelector(
+      "div.carousel-viewport",
+    ) as HTMLDivElement;
+    const carousel = wrapper.querySelector("div.carousel") as HTMLDivElement;
+    const slides = wrapper.querySelectorAll(
+      "div.slide",
+    ) as NodeListOf<HTMLDivElement>;
+    const slideViewports = wrapper.querySelectorAll(
+      "div.slide-viewport",
+    ) as NodeListOf<HTMLDivElement>;
+    const prevButton = wrapper.querySelector(
+      "button.prev-button",
+    ) as HTMLButtonElement;
+    const nextButton = wrapper.querySelector(
+      "button.next-button",
+    ) as HTMLButtonElement;
+    const paginationButtons = wrapper.querySelectorAll(
+      "button.page-button",
+    ) as NodeListOf<HTMLButtonElement>;
+
+    if (
+      !carouselViewport ||
+      !carousel ||
+      !prevButton ||
+      !nextButton ||
+      slides.length === 0
+    ) {
+      return;
+    }
+
+    let currentIndex = 0;
+    let autoplayTimer: number | undefined;
+    let isPaused = false;
+    const autoplayEnabled = wrapper.dataset.autoplay === "true";
+    const pauseOnHover = wrapper.dataset.pauseOnHover !== "false";
+    const intervalMs = Number(wrapper.dataset.intervalMs ?? "5000");
+
+    function updateButtonStates() {
+      prevButton.disabled = currentIndex === 0;
+      nextButton.disabled = currentIndex === slides.length - 1;
+      paginationButtons.forEach((item, index) => {
+        item.classList.toggle("active", index === currentIndex);
+      });
+    }
+
+    function goToSlide(index: number, wrap = false) {
+      const nextIndex = wrap
+        ? (index + slides.length) % slides.length
+        : index;
+
+      if (nextIndex < 0 || nextIndex >= slides.length) {
+        return;
+      }
+
+      currentIndex = nextIndex;
+      carousel.scrollTo({
+        left: slideViewports[nextIndex].offsetLeft,
+        behavior: "smooth",
+      });
+      updateButtonStates();
+    }
+
+    function startAutoplay() {
+      if (
+        !autoplayEnabled ||
+        slides.length <= 1 ||
+        !Number.isFinite(intervalMs) ||
+        intervalMs <= 0 ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ) {
+        return;
+      }
+
+      autoplayTimer = window.setInterval(() => {
+        if (!isPaused) {
+          goToSlide(currentIndex + 1, true);
+        }
+      }, intervalMs);
+    }
+
+    prevButton.addEventListener("click", () => {
+      goToSlide(currentIndex - 1);
+    });
+
+    nextButton.addEventListener("click", () => {
+      goToSlide(currentIndex + 1);
+    });
+
+    paginationButtons.forEach((item, index) => {
+      item.addEventListener("click", () => {
+        goToSlide(index);
+      });
+    });
+
+    if (pauseOnHover) {
+      wrapper.addEventListener("pointerenter", () => {
+        isPaused = true;
+      });
+      wrapper.addEventListener("pointerleave", () => {
+        isPaused = false;
+      });
+      wrapper.addEventListener("focusin", () => {
+        isPaused = true;
+      });
+      wrapper.addEventListener("focusout", () => {
+        isPaused = false;
+      });
+    }
+
+    updateButtonStates();
+    startAutoplay();
+
+    window.addEventListener("beforeunload", () => {
+      if (autoplayTimer) {
+        window.clearInterval(autoplayTimer);
+      }
+    });
+
+    if (slideViewports.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries.filter((entry) => entry.isIntersecting);
+        if (visibleEntries.length === 0) {
+          return;
+        }
+
+        const mostVisible = visibleEntries.reduce((prev, current) =>
+          current.intersectionRatio > prev.intersectionRatio ? current : prev,
+        );
+
+        const target = mostVisible.target as HTMLElement;
+        const nextIndex = Number(target.dataset.index ?? "-1");
+        if (Number.isNaN(nextIndex) || nextIndex === currentIndex) {
+          return;
+        }
+
+        currentIndex = nextIndex;
+        updateButtonStates();
+      },
+      {
+        root: carousel,
+        threshold: 0.5,
+      },
+    );
+
+    slideViewports.forEach((slideViewport) => observer.observe(slideViewport));
+  });
+</script>
+
+<style>
+  @reference "../styles/global.css";
+  :root {
+    --slide-gap: 1rem;
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    .navigation-button {
+      display: none;
+    }
+  }
+
+  .page-button.active > div {
+    @apply scale-[1.4] bg-orange-600 dark:bg-orange-300;
+  }
+
+  .page-button:active > div {
+    @apply scale-100;
+  }
+
+  @media (hover: hover) {
+    .page-button:hover > div,
+    .navigation-button:hover:not(:disabled) > svg {
+      @apply scale-[1.4];
+    }
+  }
+</style>

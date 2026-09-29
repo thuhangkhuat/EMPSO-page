@@ -1,0 +1,16 @@
+<div class="full-bleed overflow-auto px-6">
+  <table class="clear-bordered-table mx-auto w-auto">
+    <slot />
+  </table>
+</div>
+
+<style>
+  .clear-bordered-table {
+    border: 1px solid var(--color-zinc-400);
+  }
+
+  .clear-bordered-table :global(th),
+  .clear-bordered-table :global(td) {
+    border-color: var(--color-zinc-400);
+  }
+</style>

@@ -1,0 +1,460 @@
+---
+title: "EMPSO: Evolutionary Multimodal Particle Swarm Optimization for Minimum Time Search of a Lost Target with Multiple UAVs"
+authors:
+  - name: Thu Hang Khuat
+    institutionIndices: [1]
+  - name: Hai Trung Le
+    institutionIndices: [1]
+  - name: Khanh Thanh Tran
+    institutionIndices: [1]
+  - name: Thuy Pham
+    institutionIndices: [2]
+  - name: Manh Duong Phung
+    institutionIndices: [1]
+    notes: ["*"]
+institutions:
+  - index: 1
+    name: "VinUniversity, Hanoi, Vietnam"
+    logo: "/vinuni.svg"
+    logoWidth: 590
+    logoHeight: 112
+  - index: 2
+    name: "University of Technology Sydney, Australia"
+conference:
+notes:
+  - symbol: "*"
+    text: "Corresponding author: duong.pm@vinuni.edu.vn"
+links:
+  # TODO: uncomment once the paper is public (arXiv / journal / public/paper.pdf)
+  # - name: Paper
+  #   url: "https://arxiv.org/abs/XXXX.XXXXX"
+  #   icon: ri:file-pdf-2-line
+  - name: Code
+    url: "https://github.com/thuhangkhuat/EMPSO_target_search"
+    icon: ri:github-line
+  - name: Video
+    url: "https://youtu.be/7yOEKzaUbeI"
+    icon: ri:youtube-line
+theme: light
+favicon: favicon.svg
+description: EMPSO is a multimodal particle swarm optimizer that plans multiple spatially distinct flight paths in a single run to minimize the expected time for a UAV fleet to find a lost target.
+thumbnail: thumbnail.png
+keywords:
+  - minimum time search
+  - multimodal particle swarm optimization
+  - differential evolution
+  - multi-UAV search
+  - search and rescue
+---
+
+import HighlightedSection from "./components/HighlightedSection.astro";
+import Carousel from "./components/Carousel.astro";
+import CarouselSlide from "./components/CarouselSlide.astro";
+import Figure from "./components/Figure.astro";
+import Picture from "./components/Picture.astro";
+import TwoColumns from "./components/TwoColumns.astro";
+import YouTubeVideo from "./components/YouTubeVideo.astro";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/starwind/tabs";
+
+import figStructure from "./assets/fig1_structure.png";
+import figEncoding from "./assets/fig2_encoding.png";
+import scen1 from "./assets/scen1.png";
+import scen2 from "./assets/scen2.png";
+import scen3 from "./assets/scen3.png";
+import scen4 from "./assets/scen4.png";
+import scen5 from "./assets/scen5.png";
+import scen6 from "./assets/scen6.png";
+import paths1 from "./assets/paths1.png";
+import paths2 from "./assets/paths2.png";
+import paths3 from "./assets/paths3.png";
+import paths4 from "./assets/paths4.png";
+import paths5 from "./assets/paths5.png";
+import paths6 from "./assets/paths6.png";
+import convPso1 from "./assets/conv_pso1.png";
+import convPso2 from "./assets/conv_pso2.png";
+import convPso3 from "./assets/conv_pso3.png";
+import convPso4 from "./assets/conv_pso4.png";
+import convPso5 from "./assets/conv_pso5.png";
+import convPso6 from "./assets/conv_pso6.png";
+import convMeta1 from "./assets/conv_meta1.png";
+import convMeta2 from "./assets/conv_meta2.png";
+import convMeta3 from "./assets/conv_meta3.png";
+import convMeta4 from "./assets/conv_meta4.png";
+import convMeta5 from "./assets/conv_meta5.png";
+import convMeta6 from "./assets/conv_meta6.png";
+import figPlatform from "./assets/fig7a.jpg";
+import figValScenario from "./assets/fig7b.png";
+import figValPaths from "./assets/fig8a.png";
+import figValFlight from "./assets/fig8b.jpg";
+import figTakeoff from "./assets/fig9a.jpg";
+import figMission from "./assets/fig9b.jpg";
+
+<HighlightedSection>
+
+## Abstract
+
+This paper considers the Minimum Time Search (MTS) problem using multiple Unmanned Aerial Vehicles (UAVs), where the fleet must be assigned distinct flight trajectories to minimize the expected total time to detect the target. Based on a Bayesian search model, we propose the EMPSO (Evolutionary Multimodal Particle Swarm Optimization) algorithm, which is a multimodal PSO variant capable of generating multiple search trajectories in a single run. EMPSO encodes each solution as a motion sequence and establishes neighborhoods based on measured distances to form effective search niches. The algorithm's search mechanism combines a simple position update method for local exploitation within niches and Differential Evolution operators for global exploration across the entire population, followed by an elitist selection step to extract a set of trajectories for the fleet. The proposed method was evaluated across six scenarios and compared against other multimodal PSO variants as well as other meta-heuristic algorithms. The results demonstrate that EMPSO achieves the best or highly competitive search performance across these scenarios with reasonable computational cost. Field experiments with a team of simultaneously flying UAVs further confirm that the generated trajectories can be executed as feasible coordinated missions on actual hardware.
+
+</HighlightedSection>
+
+<Figure>
+  <YouTubeVideo slot="figure" videoId="7yOEKzaUbeI" />
+  <Fragment slot="caption">Field experiment: three 3DR Solo quadrotors simultaneously fly the search paths planned by EMPSO.</Fragment>
+</Figure>
+
+## Highlights
+
+1. **One run, N paths.** Multi-UAV minimum-time search is cast as a multimodal optimization problem over motion-encoded paths, so each optimum is a feasible flight path and one run yields the whole fleet plan.
+2. **Niching in path space.** Neighborhoods are built from distances between *decoded trajectories*, not between motion encodings, so particles that fly similar routes are grouped even when their encodings differ.
+3. **Hybrid update.** Locally informed PSO guidance refines paths inside each niche, while differential evolution mutation keeps the population diverse; greedy selection keeps only improvements.
+4. **Fleet-aware extraction.** An elitist procedure picks the N personal bests that jointly reduce the expected detection time the most, instead of the N individually best paths.
+5. **Validated on hardware.** Best or highly competitive results on six benchmark scenarios, and a field test in which three UAVs execute the planned paths concurrently.
+
+## Why Minimum Time Search?
+
+Time decides the outcome of a search and rescue operation: in avalanche burials, for example, the probability of survival drops sharply within the first half hour. The planning objective is therefore not to maximize the probability that the target is *eventually* found, but to minimize the *expected time* until it is found.
+
+This is hard for three reasons. The target location is uncertain and represented by a probability map. Sensors are imperfect, so a negative observation lowers but does not eliminate the probability of an observed cell, which makes the value of each visit depend on the path flown so far. And feasible paths must be connected sequences of admissible moves, so the number of candidates grows exponentially with the horizon; the optimal searcher path problem is NP-hard.
+
+For a fleet, running a single-path optimizer once per UAV is not enough: independently planned paths ignore each other and tend to pile onto the same high-probability region. The optimizer has to find **N feasible and spatially distinct paths** that complement each other.
+
+## Problem Formulation
+
+The search area is partitioned into $G$ cells, and the belief map $b(x_0)$ holds the probability that the target is in each cell. Each of the $N$ UAVs carries a sensor that reports detection or non-detection; since the sensors are independent, the probability that no sensor detects the target at step $t$ is
+
+$$
+p(\bar D_t \mid x_t) = \prod_{s=1}^{N} p(\bar D^s_t \mid x_t).
+$$
+
+The belief evolves by recursive Bayesian estimation. A prediction step propagates it with the target's Markov motion model, and an update step fuses the new observations:
+
+$$
+\hat b(x_t) = \sum_{x_{t-1} \in G} p(x_t \mid x_{t-1})\, b(x_{t-1}),
+\qquad
+b(x_t) = \eta_t \prod_{s=1}^{N} p(z^s_t \mid x_t)\, \hat b(x_t).
+$$
+
+The probability of not detecting the target at step $t$, and throughout steps $1..t$, are
+
+$$
+r_t = \sum_{x_t \in G} p(\bar D_t \mid x_t)\, \hat b(x_t),
+\qquad
+R_t = \prod_{k=1}^{t} r_k .
+$$
+
+With constant UAV speed, the expected time to detection over a horizon of $T$ steps reduces (in time steps) to
+
+$$
+J^* = \sum_{t=1}^{T} R_t ,
+$$
+
+and the goal is to find flight paths for the $N$ UAVs that minimize $J^*$.
+
+## Method
+
+<Figure>
+  <Picture slot="figure" src={figStructure} alt="Block diagram of the EMPSO algorithm" maxHeight="max-h-[80svh]" />
+  <Fragment slot="caption"><strong>Structure of EMPSO.</strong> Shaded blocks mark the three new components (niching in path space, hybrid update, extraction of multiple paths); white blocks are inherited from motion-encoded PSO, locally informed PSO, and DE.</Fragment>
+</Figure>
+
+Each generation repeats three steps: **niching in path space** groups particles by the distance between their decoded paths; the **hybrid update** moves each particle toward its neighborhood guide or by a DE mutation, followed by crossover and greedy selection; **extraction** builds the fleet one path at a time, each time adding the path that reduces the fleet cost the most. The best fleet found over all generations is returned.
+
+<Carousel>
+<CarouselSlide>
+<div className="method-slide method-slide-blue">
+
+### 1. Motion-Encoded Paths
+
+Following motion-encoded PSO, a particle is not a list of cells but a sequence of movement vectors $U_i = (u_{i,1}, \dots, u_{i,T})$ with $u_{i,t} = (x_{i,t}, y_{i,t})$. Only the heading of each vector is kept, rounded to the nearest multiple of $45^\circ$:
+
+$$
+\alpha^*_{i,t} = 45^\circ \left\lfloor \operatorname{atan2}(y_{i,t}, x_{i,t}) / 45^\circ \right\rceil .
+$$
+
+Starting from the common start cell, the path is decoded as $o_{i,t} = o_{i,t-1} + u^*_{i,t}$, where $u^*_{i,t}$ is one of the eight unit steps. Decoding always yields a connected sequence of adjacent cells, so **every particle is a flyable path**, while the search itself runs in the continuous *motion space*.
+
+</div>
+</CarouselSlide>
+
+<CarouselSlide>
+<div className="method-slide method-slide-green">
+
+### 2. Niching in Path Space
+
+Euclidean distance between encodings does not measure how far apart two flights are: headings that differ by $1^\circ$ can round to different moves, and very different headings can decode to the same path. EMPSO therefore measures distance between the **decoded** paths $O_a$ and $O_b$:
+
+$$
+D(U_a, U_b) = \sum_{t=1}^{T} \lVert o_{a,t} - o_{b,t} \rVert_2 .
+$$
+
+For each particle, the $m$ particles closest to its personal best form its neighborhood. Because neighborhoods reflect spatial separation, the niches that form correspond to distinct regions of the belief map.
+
+<Picture src={figEncoding} alt="Two examples of motion encodings and their decoded paths" maxHeight="max-h-[40svh]" />
+
+</div>
+</CarouselSlide>
+
+<CarouselSlide>
+<div className="method-slide method-slide-rose">
+
+### 3. Hybrid Update
+
+Each particle picks one of two operators at random in every generation. **Neighborhood guidance** (exploitation) moves it toward $\hat U_{i,k}$, a random weighted average of its neighbors' personal bests; **DE mutation** (exploration) perturbs a random individual by a scaled difference of two others:
+
+$$
+U^m_{i,k} =
+\begin{cases}
+(1-\lambda)\, U_{i,k} + \lambda\, \hat U_{i,k}, & \text{if } \mathrm{rand} < 0.5,\\[2pt]
+U_{n_1,k} + F \odot \left(U_{n_2,k} - U_{n_3,k}\right), & \text{otherwise.}
+\end{cases}
+$$
+
+The candidate then goes through per-movement crossover with probability $p_{Cr}$, and **greedy selection** keeps it only if its decoded path has a lower cost $J^*$. Every particle's cost is therefore non-increasing, and a mutation is accepted only when it finds a better path.
+
+</div>
+</CarouselSlide>
+
+<CarouselSlide>
+<div className="method-slide method-slide-violet">
+
+### 4. Extraction of Multiple Paths
+
+The $N$ individually best particles are not the best fleet: two strong paths may cover the same cells. For a set of paths $\mathcal P$, the joint cost multiplies the non-detection likelihoods of all UAVs in the set:
+
+$$
+J^*(\mathcal P) = \sum_{t=1}^{T} R_t(\mathcal P),
+\qquad
+p(\bar D_t \mid x_t) = \prod_{h \in \mathcal P} p(\bar D^h_t \mid x_t).
+$$
+
+Starting from the empty fleet ($J^*(\varnothing) = T$), EMPSO greedily adds the personal best with the largest gain $\Delta(p) = J^*(\mathcal P) - J^*(\mathcal P \cup \{p\})$ until $N$ paths are selected. The per-generation cost is $O(N N_p T G + N_p^2 T)$, so running time grows roughly linearly with the fleet size.
+
+</div>
+</CarouselSlide>
+</Carousel>
+
+## Benchmark Scenarios
+
+All six scenarios use a $40 \times 40$ grid and differ in the start location, the target motion, the initial belief map, and the fleet size. Select a scenario to see its initial belief map (white dot: UAV start; yellow arrows: target motion) and the paths planned by EMPSO (one color per UAV; purple trails show how the high-probability regions move over the horizon).
+
+<Tabs defaultValue="s1" syncKey="scenario">
+<TabsList>
+<TabsTrigger value="s1">Scenario 1</TabsTrigger>
+<TabsTrigger value="s2">Scenario 2</TabsTrigger>
+<TabsTrigger value="s3">Scenario 3</TabsTrigger>
+<TabsTrigger value="s4">Scenario 4</TabsTrigger>
+<TabsTrigger value="s5">Scenario 5</TabsTrigger>
+<TabsTrigger value="s6">Scenario 6</TabsTrigger>
+</TabsList>
+<TabsContent value="s1">
+**3 UAVs.** Two adjacent but distinct high-probability regions; the target moves east.
+<TwoColumns>
+<Picture slot="left" src={scen1} alt="Scenario 1 initial belief map" maxHeight="max-h-[60svh]" />
+<Picture slot="right" src={paths1} alt="Scenario 1 paths planned by EMPSO" maxHeight="max-h-[60svh]" />
+</TwoColumns>
+</TabsContent>
+<TabsContent value="s2">
+**3 UAVs.** Two clearly separated regions on opposite sides of the start; the target moves south-west.
+<TwoColumns>
+<Picture slot="left" src={scen2} alt="Scenario 2 initial belief map" maxHeight="max-h-[60svh]" />
+<Picture slot="right" src={paths2} alt="Scenario 2 paths planned by EMPSO" maxHeight="max-h-[60svh]" />
+</TwoColumns>
+</TabsContent>
+<TabsContent value="s3">
+**4 UAVs.** Four concentrated regions moving rapidly south-east; each UAV heads to a different region.
+<TwoColumns>
+<Picture slot="left" src={scen3} alt="Scenario 3 initial belief map" maxHeight="max-h-[60svh]" />
+<Picture slot="right" src={paths3} alt="Scenario 3 paths planned by EMPSO" maxHeight="max-h-[60svh]" />
+</TwoColumns>
+</TabsContent>
+<TabsContent value="s4">
+**4 UAVs.** The target moves back toward the UAV start point, in the south-west direction.
+<TwoColumns>
+<Picture slot="left" src={scen4} alt="Scenario 4 initial belief map" maxHeight="max-h-[60svh]" />
+<Picture slot="right" src={paths4} alt="Scenario 4 paths planned by EMPSO" maxHeight="max-h-[60svh]" />
+</TwoColumns>
+</TabsContent>
+<TabsContent value="s5">
+**5 UAVs.** Four regions on opposite sides of the start, moving north; the UAVs fly toward where the regions *will be*.
+<TwoColumns>
+<Picture slot="left" src={scen5} alt="Scenario 5 initial belief map" maxHeight="max-h-[60svh]" />
+<Picture slot="right" src={paths5} alt="Scenario 5 paths planned by EMPSO" maxHeight="max-h-[60svh]" />
+</TwoColumns>
+</TabsContent>
+<TabsContent value="s6">
+**5 UAVs.** Three regions moving north-east.
+<TwoColumns>
+<Picture slot="left" src={scen6} alt="Scenario 6 initial belief map" maxHeight="max-h-[60svh]" />
+<Picture slot="right" src={paths6} alt="Scenario 6 paths planned by EMPSO" maxHeight="max-h-[60svh]" />
+</TwoColumns>
+</TabsContent>
+</Tabs>
+
+In every scenario, the paths advance toward the high-probability regions and no two paths follow the same route: the fleet covers the belief map with complementary trajectories rather than repeated visits to the dominant region.
+
+EMPSO uses the same parameters in all scenarios:
+
+| Parameter | Value |
+|-----------|-------|
+| Population size $N_p$ | 200 |
+| Number of generations $K$ | 100 |
+| Neighborhood size $m$ | 3 |
+| Influence weight $\lambda$ | 0.5 |
+| Scaling factor $F$ | $\mathcal U(0.2, 0.8)$, per component |
+| Crossover probability $p_{Cr}$ | 0.8 |
+
+## Results
+
+All methods use the same motion-encoded representation, population size, number of generations, cost function, and scenarios. Values are the joint minimum search time $J^*$ (lower is better), mean ± standard deviation over 10 runs; the best value per scenario is in bold.
+
+### Comparison with multimodal PSO variants
+
+EMPSO is compared with ring-topology PSO (RPSO), nbest PSO (NPSO), locally informed PSO (LIPS), and the fully informed particle swarm (FIPS).
+
+| Scen. | EMPSO | RPSO | NPSO | LIPS | FIPS |
+|:-----:|:-----:|:----:|:----:|:----:|:----:|
+| 1 | **16.4853 ± 0.0979** | 16.6101 ± 0.0726 | 16.9064 ± 0.2043 | 16.5768 ± 0.0732 | 17.1764 ± 0.1510 |
+| 2 | **15.1649 ± 0.1057** | 15.2393 ± 0.1986 | 15.4132 ± 0.2611 | 15.3036 ± 0.1908 | 15.6788 ± 0.2048 |
+| 3 | **16.9248 ± 0.1850** | 17.0380 ± 0.0527 | 17.2511 ± 0.1664 | 17.0678 ± 0.1714 | 17.4454 ± 0.0991 |
+| 4 | **16.6826 ± 0.0783** | 16.8257 ± 0.0912 | 16.8159 ± 0.1226 | 16.7795 ± 0.0558 | 16.9978 ± 0.0913 |
+| 5 | **17.5181 ± 0.0699** | 17.6552 ± 0.1277 | 17.5349 ± 0.1296 | 17.5956 ± 0.0914 | 17.8135 ± 0.1757 |
+| 6 | **15.0393 ± 0.0585** | 15.4543 ± 0.1291 | 15.5061 ± 0.1697 | 15.4069 ± 0.0809 | 15.5314 ± 0.1110 |
+
+EMPSO has the lowest mean in all six scenarios, with the largest gap in Scenario 6 (five UAVs). It also beats LIPS everywhere, showing that the DE operator adds more than a re-implementation of LIPS would.
+
+### Comparison with other metaheuristics
+
+EMPSO is compared with the Firefly Algorithm (FA), Differential Evolution (DE), Crowding Differential Evolution (CDE), and the Crowding Clustering Genetic Algorithm (CGA).
+
+| Scen. | EMPSO | FA | CGA | DE | CDE |
+|:-----:|:-----:|:--:|:---:|:--:|:---:|
+| 1 | **16.4853 ± 0.0979** | 16.7814 ± 0.1339 | 17.1603 ± 0.0971 | 17.5698 ± 0.0148 | 16.6904 ± 0.1745 |
+| 2 | 15.1649 ± 0.1057 | 15.5256 ± 0.2667 | 15.9954 ± 0.1291 | 16.5867 ± 0.0024 | **15.1590 ± 0.1084** |
+| 3 | **16.9248 ± 0.1850** | 17.0529 ± 0.0575 | 17.8776 ± 0.0803 | 18.0456 ± 0.0397 | 17.2132 ± 0.1546 |
+| 4 | **16.6826 ± 0.0783** | 16.7618 ± 0.0474 | 17.8026 ± 0.1074 | 18.5438 ± 0.0000 | 17.0469 ± 0.0513 |
+| 5 | **17.5181 ± 0.0699** | 17.8198 ± 0.0968 | 18.7825 ± 0.0872 | 18.7855 ± 0.0284 | 17.6622 ± 0.0751 |
+| 6 | **15.0393 ± 0.0585** | 15.5523 ± 0.1314 | 15.7968 ± 0.1067 | 16.2315 ± 0.0159 | 15.1272 ± 0.0757 |
+
+EMPSO is best in five of six scenarios and within 0.006 of CDE in Scenario 2. Plain DE converges to a single region early (zero variance in Scenario 4), which is exactly what a fleet cannot use.
+
+### Convergence
+
+Select a scenario to compare mean ± std convergence curves over 10 runs.
+
+<Tabs defaultValue="s1" syncKey="scenario">
+<TabsList>
+<TabsTrigger value="s1">Scenario 1</TabsTrigger>
+<TabsTrigger value="s2">Scenario 2</TabsTrigger>
+<TabsTrigger value="s3">Scenario 3</TabsTrigger>
+<TabsTrigger value="s4">Scenario 4</TabsTrigger>
+<TabsTrigger value="s5">Scenario 5</TabsTrigger>
+<TabsTrigger value="s6">Scenario 6</TabsTrigger>
+</TabsList>
+<TabsContent value="s1">
+<TwoColumns>
+<Picture slot="left" src={convPso1} alt="Scenario 1 convergence, PSO variants" maxHeight="max-h-[60svh]" />
+<Picture slot="right" src={convMeta1} alt="Scenario 1 convergence, other metaheuristics" maxHeight="max-h-[60svh]" />
+</TwoColumns>
+</TabsContent>
+<TabsContent value="s2">
+<TwoColumns>
+<Picture slot="left" src={convPso2} alt="Scenario 2 convergence, PSO variants" maxHeight="max-h-[60svh]" />
+<Picture slot="right" src={convMeta2} alt="Scenario 2 convergence, other metaheuristics" maxHeight="max-h-[60svh]" />
+</TwoColumns>
+</TabsContent>
+<TabsContent value="s3">
+<TwoColumns>
+<Picture slot="left" src={convPso3} alt="Scenario 3 convergence, PSO variants" maxHeight="max-h-[60svh]" />
+<Picture slot="right" src={convMeta3} alt="Scenario 3 convergence, other metaheuristics" maxHeight="max-h-[60svh]" />
+</TwoColumns>
+</TabsContent>
+<TabsContent value="s4">
+<TwoColumns>
+<Picture slot="left" src={convPso4} alt="Scenario 4 convergence, PSO variants" maxHeight="max-h-[60svh]" />
+<Picture slot="right" src={convMeta4} alt="Scenario 4 convergence, other metaheuristics" maxHeight="max-h-[60svh]" />
+</TwoColumns>
+</TabsContent>
+<TabsContent value="s5">
+<TwoColumns>
+<Picture slot="left" src={convPso5} alt="Scenario 5 convergence, PSO variants" maxHeight="max-h-[60svh]" />
+<Picture slot="right" src={convMeta5} alt="Scenario 5 convergence, other metaheuristics" maxHeight="max-h-[60svh]" />
+</TwoColumns>
+</TabsContent>
+<TabsContent value="s6">
+<TwoColumns>
+<Picture slot="left" src={convPso6} alt="Scenario 6 convergence, PSO variants" maxHeight="max-h-[60svh]" />
+<Picture slot="right" src={convMeta6} alt="Scenario 6 convergence, other metaheuristics" maxHeight="max-h-[60svh]" />
+</TwoColumns>
+</TabsContent>
+</Tabs>
+
+NPSO and LIPS drop faster in early iterations but stagnate, whereas EMPSO keeps improving: neighborhood guidance refines each niche while DE mutation maintains diversity and helps the swarm escape local minima. Among the other metaheuristics, FA, CDE, and EMPSO keep decreasing throughout the run, while DE stays nearly flat and CGA plateaus early at a high cost.
+
+### Execution time
+
+Mean running time in seconds over 10 runs.
+
+| Scen. | EMPSO | RPSO | NPSO | LIPS | FIPS | FA | CGA | DE | CDE |
+|:-----:|:-----:|:----:|:----:|:----:|:----:|:--:|:---:|:--:|:---:|
+| 1 | 64.13 | 8.74 | 57.33 | 62.09 | 60.65 | 13.40 | 11.25 | 10.09 | 102.88 |
+| 2 | 63.65 | 8.68 | 58.05 | 63.22 | 60.03 | 12.68 | 10.15 | 10.61 | 105.10 |
+| 3 | 71.20 | 11.42 | 65.75 | 68.52 | 67.31 | 15.93 | 11.95 | 10.25 | 110.93 |
+| 4 | 69.51 | 11.56 | 64.96 | 69.07 | 68.85 | 16.29 | 11.35 | 10.33 | 113.17 |
+| 5 | 67.32 | 12.96 | 62.68 | 66.69 | 65.42 | 17.19 | 10.80 | 14.74 | 107.53 |
+| 6 | 67.47 | 13.42 | 64.36 | 67.18 | 65.55 | 17.45 | 11.49 | 12.85 | 106.87 |
+
+RPSO is fastest because its index-based ring neighborhoods need no distance computations. EMPSO runs in about the same time as the other distance-based PSO variants (NPSO, LIPS, FIPS), so the DE operator adds negligible overhead, and it reaches CDE-level or better quality at roughly half of CDE's cost. DE, CGA, and FA are faster but converge prematurely.
+
+## Field Experiment
+
+To verify that the planned trajectories are flyable, three 3DR Solo quadrotors operated through QGroundControl flew simultaneously over a stadium of roughly 60 × 100 m. The scenario uses a 30 × 30 grid with the target starting at the map center and moving north-east.
+
+<TwoColumns>
+<Figure slot="left">
+  <Picture slot="figure" src={figPlatform} alt="Three 3DR Solo drones with remote controllers and laptops running QGroundControl" />
+  <Fragment slot="caption">Multi-UAV platform: three 3DR Solo drones and QGroundControl.</Fragment>
+</Figure>
+<Figure slot="right">
+  <Picture slot="figure" src={figValScenario} alt="Initial belief map of the validation scenario" />
+  <Fragment slot="caption">Initial validation scenario.</Fragment>
+</Figure>
+</TwoColumns>
+
+EMPSO generates three paths as grid-cell sequences, which are converted to GPS waypoints and uploaded via QGroundControl for autonomous execution. The recorded flight paths (red) closely follow the planned ones (orange), reproducing their shape and the spacing between waypoints.
+
+<TwoColumns>
+<Figure slot="left">
+  <Picture slot="figure" src={figValPaths} alt="Three search paths generated by EMPSO on the simulation map" />
+  <Fragment slot="caption">Search paths generated on the simulation map.</Fragment>
+</Figure>
+<Figure slot="right">
+  <Picture slot="figure" src={figValFlight} alt="Planned and actual UAV paths overlaid on a satellite image of the stadium" />
+  <Fragment slot="caption">Planned paths vs. actual flight paths on the real map.</Fragment>
+</Figure>
+</TwoColumns>
+
+<TwoColumns>
+<Figure slot="left">
+  <Picture slot="figure" src={figTakeoff} alt="Three UAVs taking off over the stadium" />
+  <Fragment slot="caption">Takeoff phase.</Fragment>
+</Figure>
+<Figure slot="right">
+  <Picture slot="figure" src={figMission} alt="Three UAVs performing the coordinated search mission" />
+  <Fragment slot="caption">Performing the coordinated search mission.</Fragment>
+</Figure>
+</TwoColumns>
+
+## Conclusion
+
+EMPSO combines motion encoding, path-space niching, a hybrid PSO/DE update, and fleet-aware extraction to plan spatially distinct trajectories for a UAV fleet in a single run. It achieves the best or highly competitive minimum search time on six benchmark scenarios at reasonable computational cost, and its paths execute as coordinated missions on real UAVs. Future work will parallelize the implementation for larger maps and fleets and relax the assumption of deterministic target motion.
+
+## BibTeX
+
+```bibtex
+@article{khuat2026empso,
+  title   = {Evolutionary Multimodal Particle Swarm Optimization for Minimum Time Search of a Lost Target with Multiple {UAVs}},
+  author  = {Khuat, Thu Hang and Le, Hai Trung and Tran, Khanh Thanh and Pham, Thuy and Phung, Manh Duong},
+  journal = {TODO},
+  year    = {2026}
+}
+```

@@ -236,7 +236,7 @@ Starting from the empty fleet ($J^*(\varnothing) = T$), EMPSO greedily adds the 
 
 ## Benchmark Scenarios
 
-All six scenarios use a $40 \times 40$ grid and differ in the start location, the target motion, the initial belief map, and the fleet size. Select a scenario to see its initial belief map (white dot: UAV start; yellow arrows: target motion) and the paths planned by EMPSO (one color per UAV; purple trails show how the high-probability regions move over the horizon).
+All six scenarios use a $40 \times 40$ grid and differ in the start location, the target motion, the initial belief map, and the fleet size. Select a scenario to see its initial belief map and the paths planned by EMPSO.
 
 <Tabs defaultValue="s1" syncKey="scenario">
 <TabsList>
@@ -291,8 +291,6 @@ All six scenarios use a $40 \times 40$ grid and differ in the start location, th
 </TabsContent>
 </Tabs>
 
-In every scenario, the paths advance toward the high-probability regions and no two paths follow the same route: the fleet covers the belief map with complementary trajectories rather than repeated visits to the dominant region.
-
 EMPSO uses the same parameters in all scenarios:
 
 | Parameter | Value |
@@ -306,7 +304,7 @@ EMPSO uses the same parameters in all scenarios:
 
 ## Results
 
-All methods use the same motion-encoded representation, population size, number of generations, cost function, and scenarios. Values are the joint minimum search time $J^*$ (lower is better), mean ± standard deviation over 10 runs; the best value per scenario is in bold.
+All methods use the same motion-encoded representation, population size, number of generations, cost function, and scenarios. Values are the joint minimum search time $J^*$, mean ± standard deviation over 10 runs; the best value per scenario is in bold.
 
 ### Comparison with multimodal PSO variants
 
@@ -321,8 +319,6 @@ EMPSO is compared with ring-topology PSO (RPSO), nbest PSO (NPSO), locally infor
 | 5 | **17.5181 ± 0.0699** | 17.6552 ± 0.1277 | 17.5349 ± 0.1296 | 17.5956 ± 0.0914 | 17.8135 ± 0.1757 |
 | 6 | **15.0393 ± 0.0585** | 15.4543 ± 0.1291 | 15.5061 ± 0.1697 | 15.4069 ± 0.0809 | 15.5314 ± 0.1110 |
 
-EMPSO has the lowest mean in all six scenarios, with the largest gap in Scenario 6 (five UAVs). It also beats LIPS everywhere, showing that the DE operator adds more than a re-implementation of LIPS would.
-
 ### Comparison with other metaheuristics
 
 EMPSO is compared with the Firefly Algorithm (FA), Differential Evolution (DE), Crowding Differential Evolution (CDE), and the Crowding Clustering Genetic Algorithm (CGA).
@@ -336,7 +332,6 @@ EMPSO is compared with the Firefly Algorithm (FA), Differential Evolution (DE), 
 | 5 | **17.5181 ± 0.0699** | 17.8198 ± 0.0968 | 18.7825 ± 0.0872 | 18.7855 ± 0.0284 | 17.6622 ± 0.0751 |
 | 6 | **15.0393 ± 0.0585** | 15.5523 ± 0.1314 | 15.7968 ± 0.1067 | 16.2315 ± 0.0159 | 15.1272 ± 0.0757 |
 
-EMPSO is best in five of six scenarios and within 0.006 of CDE in Scenario 2. Plain DE converges to a single region early (zero variance in Scenario 4), which is exactly what a fleet cannot use.
 
 ### Convergence
 
@@ -389,7 +384,6 @@ Select a scenario to compare mean ± std convergence curves over 10 runs.
 </TabsContent>
 </Tabs>
 
-NPSO and LIPS drop faster in early iterations but stagnate, whereas EMPSO keeps improving: neighborhood guidance refines each niche while DE mutation maintains diversity and helps the swarm escape local minima. Among the other metaheuristics, FA, CDE, and EMPSO keep decreasing throughout the run, while DE stays nearly flat and CGA plateaus early at a high cost.
 
 ### Execution time
 
@@ -403,8 +397,6 @@ Mean running time in seconds over 10 runs.
 | 4 | 69.51 | 11.56 | 64.96 | 69.07 | 68.85 | 16.29 | 11.35 | 10.33 | 113.17 |
 | 5 | 67.32 | 12.96 | 62.68 | 66.69 | 65.42 | 17.19 | 10.80 | 14.74 | 107.53 |
 | 6 | 67.47 | 13.42 | 64.36 | 67.18 | 65.55 | 17.45 | 11.49 | 12.85 | 106.87 |
-
-RPSO is fastest because its index-based ring neighborhoods need no distance computations. EMPSO runs in about the same time as the other distance-based PSO variants (NPSO, LIPS, FIPS), so the DE operator adds negligible overhead, and it reaches CDE-level or better quality at roughly half of CDE's cost. DE, CGA, and FA are faster but converge prematurely.
 
 ## Field Experiment
 

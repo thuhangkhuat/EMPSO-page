@@ -56,12 +56,12 @@ function shift(map: Float64Array, size: number, [dr, dc]: number[]) {
 function normalize(map: Float64Array) {
   const sum = map.reduce((s, v) => s + v, 0);
   if (sum > 0) for (let i = 0; i < map.length; i++) map[i] /= sum;
-  return sum;
 }
 
-// Replays the shared-belief recursion of JointCost.m and records every step.
+// Belief map at every step under the target's motion only (the prediction step
+// of JointCost.m); cells the UAVs visit are left unchanged, as in the paper figures.
 function simulate(data: SearchScenario) {
-  const { mapSize: size, steps, targetMoves, targetShift, offset, paths } = data;
+  const { mapSize: size, steps, targetMoves, targetShift, offset } = data;
   const cell = ([x, y]: number[]) => {
     const col = Math.min(Math.max(x + offset - 1, 0), size - 1);
     const row = Math.min(Math.max(y + offset - 1, 0), size - 1);
@@ -70,23 +70,13 @@ function simulate(data: SearchScenario) {
 
   let map = Float64Array.from(data.pmap.flat());
   normalize(map);
-  const frames = [{ map, R: 1, J: 0 }];
-  let R = 1;
-  let J = 0;
+  const frames = [map];
   for (let i = 1; i <= steps; i++) {
     if (targetMoves !== 0 && i % (steps / targetMoves) === 0) {
       map = shift(map, size, targetShift);
       normalize(map);
-    } else {
-      map = Float64Array.from(map);
     }
-    for (const path of paths) {
-      const { row, col } = cell(path[i - 1]);
-      map[row * size + col] = 0;
-    }
-    R *= normalize(map);
-    J += R;
-    frames.push({ map, R, J });
+    frames.push(map);
   }
   return { frames, cell };
 }
@@ -94,7 +84,7 @@ function simulate(data: SearchScenario) {
 export function SearchReplay({ data }: { data: SearchScenario }) {
   const size = data.mapSize;
   const { frames, cell } = useMemo(() => simulate(data), [data]);
-  const vmax = useMemo(() => Math.max(...frames.map((f) => Math.max(...f.map))), [frames]);
+  const vmax = useMemo(() => Math.max(...frames.map((f) => Math.max(...f))), [frames]);
 
   const [step, setStep] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -103,7 +93,7 @@ export function SearchReplay({ data }: { data: SearchScenario }) {
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
     const image = ctx.createImageData(size, size);
-    const { map } = frames[step];
+    const map = frames[step];
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
         const [red, green, blue] = colormap(map[r * size + c] / vmax);
@@ -156,6 +146,12 @@ export function SearchReplay({ data }: { data: SearchScenario }) {
         aria-label="Animated belief map with the UAV search paths planned by EMPSO"
       />
       <svg viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 h-full w-full" aria-hidden="true">
+        <path
+          d={Array.from({ length: size + 1 }, (_, i) => `M${i} 0V${size}M0 ${i}H${size}`).join("")}
+          stroke="#000"
+          strokeOpacity={0.25}
+          strokeWidth={0.05}
+        />
         {data.paths.map((path, k) => {
           const color = UAV_COLORS[k % UAV_COLORS.length];
           const trail = path.slice(0, shown).map(toSvg);

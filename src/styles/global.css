@@ -604,6 +604,11 @@ html.dark .prose b {
   object-fit: contain;
 }
 
+html[data-theme="dark"] .paper-institution-logo[src$="uts.png"],
+html.dark .paper-institution-logo[src$="uts.png"] {
+  filter: invert(1);
+}
+
 .paper-conference {
   margin-top: 0.75rem;
   color: var(--color-rose-400);

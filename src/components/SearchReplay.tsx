@@ -12,7 +12,8 @@ export interface SearchScenario {
   jointCost: number;
 }
 
-const UAV_COLORS = ["#ffffff", "#ef4444", "#3b82f6", "#22c55e", "#d946ef", "#06b6d4", "#facc15"];
+// Same order as the paths in the paper figures (paths5.png).
+const UAV_COLORS = ["#ff0000", "#00ff00", "#00ffff", "#000000", "#ff8000", "#ffffff", "#ff00ff"];
 
 // Parula-like colormap, to match the MATLAB figures elsewhere on the page.
 const PARULA: [number, number, number][] = [
@@ -96,7 +97,6 @@ export function SearchReplay({ data }: { data: SearchScenario }) {
   const vmax = useMemo(() => Math.max(...frames.map((f) => Math.max(...f.map))), [frames]);
 
   const [step, setStep] = useState(0);
-  const [playing, setPlaying] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -117,19 +117,20 @@ export function SearchReplay({ data }: { data: SearchScenario }) {
     ctx.putImageData(image, 0, 0);
   }, [frames, step, size, vmax]);
 
+  // Loop like a GIF: one frame per step, hold the last frame before restarting.
   useEffect(() => {
-    if (!playing) return;
-    const id = setInterval(() => {
-      setStep((s) => {
-        if (s >= data.steps) {
-          setPlaying(false);
-          return s;
-        }
-        return s + 1;
-      });
-    }, 450);
-    return () => clearInterval(id);
-  }, [playing, data.steps]);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setStep(data.steps);
+      return;
+    }
+    let id: ReturnType<typeof setTimeout>;
+    const tick = (s: number) => {
+      setStep(s);
+      id = setTimeout(() => tick(s >= data.steps ? 0 : s + 1), s >= data.steps ? 1500 : 400);
+    };
+    tick(0);
+    return () => clearTimeout(id);
+  }, [data.steps]);
 
   // SVG coordinates: one unit per cell, cell centres at +0.5, y pointing north.
   const toSvg = (p: number[]) => {
@@ -137,85 +138,43 @@ export function SearchReplay({ data }: { data: SearchScenario }) {
     return [col + 0.5, size - 1 - row + 0.5] as const;
   };
   const shown = Math.max(step, 1);
-  const { R, J } = frames[step];
-
-  const togglePlay = () => {
-    if (!playing && step >= data.steps) setStep(0);
-    setPlaying(!playing);
-  };
+  const { R } = frames[step];
 
   return (
-    <div className="not-prose my-6 rounded-lg border bg-card p-4 text-card-foreground">
-      <div className="relative mx-auto aspect-square w-full max-w-md">
-        <canvas
-          ref={canvasRef}
-          width={size}
-          height={size}
-          className="absolute inset-0 h-full w-full rounded"
-          style={{ imageRendering: "pixelated" }}
-          aria-label={`Belief map at step ${step}`}
-        />
-        <svg viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 h-full w-full" aria-hidden="true">
-          {data.paths.map((path, k) => {
-            const color = UAV_COLORS[k % UAV_COLORS.length];
-            const trail = path.slice(0, shown).map(toSvg);
-            const [hx, hy] = trail[trail.length - 1];
-            return (
-              <g key={k}>
-                <polyline
-                  points={trail.map(([x, y]) => `${x},${y}`).join(" ")}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={0.35}
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  opacity={0.9}
-                />
-                <circle cx={hx} cy={hy} r={0.75} fill={color} stroke="#000" strokeWidth={0.2} />
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      <div className="mx-auto mt-4 flex max-w-md items-center gap-3">
-        <button
-          type="button"
-          onClick={togglePlay}
-          className="w-16 shrink-0 rounded-md border bg-secondary px-2 py-1 text-sm font-medium text-secondary-foreground hover:opacity-80"
-        >
-          {playing ? "Pause" : "Play"}
-        </button>
-        <input
-          type="range"
-          min={0}
-          max={data.steps}
-          step={1}
-          value={step}
-          onChange={(e) => {
-            setPlaying(false);
-            setStep(Number(e.target.value));
-          }}
-          className="w-full accent-blue-600"
-          aria-label="Time step"
-        />
-        <span className="w-16 shrink-0 text-right text-sm tabular-nums">
-          t = {step}/{data.steps}
-        </span>
-      </div>
-
-      <dl className="mx-auto mt-3 grid max-w-md grid-cols-2 gap-2 text-center text-sm">
-        <div className="rounded-md bg-muted px-2 py-1.5">
-          <dt className="text-muted-foreground">Detected by step t</dt>
-          <dd className="text-base font-semibold tabular-nums">{((1 - R) * 100).toFixed(1)}%</dd>
-        </div>
-        <div className="rounded-md bg-muted px-2 py-1.5">
-          <dt className="text-muted-foreground">
-            Expected time so far, Σ R<sub>k</sub>
-          </dt>
-          <dd className="text-base font-semibold tabular-nums">{J.toFixed(2)}</dd>
-        </div>
-      </dl>
+    <div className="not-prose relative mx-auto aspect-square w-full max-w-xs overflow-hidden rounded-lg">
+      <canvas
+        ref={canvasRef}
+        width={size}
+        height={size}
+        className="absolute inset-0 h-full w-full"
+        style={{ imageRendering: "pixelated" }}
+        role="img"
+        aria-label="Animated belief map with the UAV search paths planned by EMPSO"
+      />
+      <svg viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 h-full w-full" aria-hidden="true">
+        {data.paths.map((path, k) => {
+          const color = UAV_COLORS[k % UAV_COLORS.length];
+          const trail = path.slice(0, shown).map(toSvg);
+          const [hx, hy] = trail[trail.length - 1];
+          return (
+            <g key={k}>
+              <polyline
+                points={trail.map(([x, y]) => `${x},${y}`).join(" ")}
+                fill="none"
+                stroke={color}
+                strokeWidth={0.35}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                opacity={0.9}
+              />
+              <circle cx={hx} cy={hy} r={0.75} fill={color} stroke="#000" strokeWidth={0.2} />
+            </g>
+          );
+        })}
+      </svg>
+      <span className="absolute top-1.5 left-2 rounded bg-black/50 px-1.5 py-0.5 font-mono text-xs text-white tabular-nums">
+        t = {step}/{data.steps} · detected {((1 - R) * 100).toFixed(0)}%
+      </span>
     </div>
   );
 }

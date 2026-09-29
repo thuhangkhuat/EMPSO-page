@@ -56,7 +56,6 @@ import CarouselSlide from "./components/CarouselSlide.astro";
 import Figure from "./components/Figure.astro";
 import Picture from "./components/Picture.astro";
 import TwoColumns from "./components/TwoColumns.astro";
-import YouTubeVideo from "./components/YouTubeVideo.astro";
 import { SearchReplay } from "./components/SearchReplay";
 import scenario5 from "./data/empso-scenario5.json";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/starwind/tabs";
@@ -102,8 +101,8 @@ This paper considers the Minimum Time Search (MTS) problem using multiple Unmann
 </HighlightedSection>
 
 <Figure>
-  <YouTubeVideo slot="figure" videoId="7yOEKzaUbeI" />
-  <Fragment slot="caption">Field experiment: three 3DR Solo quadrotors simultaneously fly the search paths planned by EMPSO.</Fragment>
+  <div slot="figure" className="w-full"><SearchReplay client:visible data={scenario5} /></div>
+  <Fragment slot="caption">Scenario 5: five UAVs fly the paths planned by EMPSO while the belief map drifts north; each visited cell without a detection drops to zero.</Fragment>
 </Figure>
 
 ## Highlights
@@ -293,12 +292,6 @@ All six scenarios use a $40 \times 40$ grid and differ in the start location, th
 </Tabs>
 
 In every scenario, the paths advance toward the high-probability regions and no two paths follow the same route: the fleet covers the belief map with complementary trajectories rather than repeated visits to the dominant region.
-
-### Interactive replay
-
-Drag the slider to step through Scenario 5. At each step the belief map shifts with the target's motion, and every cell a UAV visits without detecting the target drops to zero before the map is renormalized; the counters track $1 - R_t$ and the running sum of $J^*$.
-
-<SearchReplay client:visible data={scenario5} />
 
 EMPSO uses the same parameters in all scenarios:
 

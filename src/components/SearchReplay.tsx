@@ -140,7 +140,12 @@ export function SearchReplay({ data }: { data: SearchScenario }) {
   const shown = Math.max(step, 1);
 
   return (
-    <div className="not-prose relative mx-auto aspect-square w-full max-w-40 overflow-hidden rounded-lg">
+    // Inline max-width: global.css caps `main *` at 100% outside Tailwind's layers,
+    // which silently overrides max-w-* utility classes.
+    <div
+      className="not-prose relative mx-auto aspect-square w-full overflow-hidden rounded-lg"
+      style={{ maxWidth: "26rem" }}
+    >
       <canvas
         ref={canvasRef}
         width={size}

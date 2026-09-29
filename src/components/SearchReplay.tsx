@@ -138,10 +138,9 @@ export function SearchReplay({ data }: { data: SearchScenario }) {
     return [col + 0.5, size - 1 - row + 0.5] as const;
   };
   const shown = Math.max(step, 1);
-  const { R } = frames[step];
 
   return (
-    <div className="not-prose relative mx-auto aspect-square w-full max-w-xs overflow-hidden rounded-lg">
+    <div className="not-prose relative mx-auto aspect-square w-full max-w-40 overflow-hidden rounded-lg">
       <canvas
         ref={canvasRef}
         width={size}
@@ -172,8 +171,8 @@ export function SearchReplay({ data }: { data: SearchScenario }) {
           );
         })}
       </svg>
-      <span className="absolute top-1.5 left-2 rounded bg-black/50 px-1.5 py-0.5 font-mono text-xs text-white tabular-nums">
-        t = {step}/{data.steps} · detected {((1 - R) * 100).toFixed(0)}%
+      <span className="absolute top-1 left-1 rounded bg-black/50 px-1 font-mono text-[10px] text-white tabular-nums">
+        t = {step}/{data.steps}
       </span>
     </div>
   );
